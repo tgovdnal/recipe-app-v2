@@ -1,0 +1,35 @@
+@page "/recipe/create"
+@using RecipeApp.Models
+@using RecipeApp.Services
+@using RecipeApp.Components.Shared
+@inject IRecipeService RecipeService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Neues Rezept</PageTitle>
+
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="md:flex md:items-center md:justify-between mb-8">
+        <div class="flex-1 min-w-0">
+            <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+                Neues Rezept erstellen
+            </h2>
+        </div>
+    </div>
+
+    <div class="bg-white shadow px-4 py-5 sm:rounded-lg sm:p-6">
+        <RecipeForm OnSubmit="HandleSubmit" OnCancel="HandleCancel" />
+    </div>
+</div>
+
+@code {
+    private async Task HandleSubmit(Recipe recipe)
+    {
+        await RecipeService.CreateAsync(recipe);
+        NavigationManager.NavigateTo("/");
+    }
+
+    private void HandleCancel()
+    {
+        NavigationManager.NavigateTo("/");
+    }
+}
