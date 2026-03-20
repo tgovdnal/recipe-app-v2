@@ -18,6 +18,8 @@ COPY --from=build /app/publish .
 
 # Create non-root user and set permissions
 RUN adduser --disabled-password --gecos "" appuser && \
+    mkdir -p /app/Data && \
+    mkdir -p /app/wwwroot/images/recipes && \
     chown -R appuser:appuser /app
 USER appuser
 

@@ -3,7 +3,6 @@ const CACHE_NAME = 'rezeptbuch-cache-v1';
 const urlsToCache = [
     './',
     './app.css',
-    './bootstrap/bootstrap.min.css',
     './RecipeApp.styles.css',
     './icon-192.png',
     './icon-512.png',
