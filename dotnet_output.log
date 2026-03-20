@@ -1,0 +1,30 @@
+Using launch settings from /app/Properties/launchSettings.json...
+Building...
+warn: Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager[35]
+      No XML encryptor configured. Key {1e0dd791-721d-4129-88a1-11a02c8cd752} may be persisted to storage in unencrypted form.
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:5267
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /app
+warn: Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware[3]
+      Failed to determine the https port for redirect.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (15ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "r"."Id", "r"."CookingTimeMinutes", "r"."CreatedAt", "r"."Description", "r"."Difficulty", "r"."ImageUrl", "r"."IngredientsJson", "r"."InstructionsJson", "r"."Servings", "r"."Tags", "r"."Title", "r"."UpdatedAt"
+      FROM "Recipes" AS "r"
+      ORDER BY "r"."CreatedAt" DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "r"."Id", "r"."CookingTimeMinutes", "r"."CreatedAt", "r"."Description", "r"."Difficulty", "r"."ImageUrl", "r"."IngredientsJson", "r"."InstructionsJson", "r"."Servings", "r"."Tags", "r"."Title", "r"."UpdatedAt"
+      FROM "Recipes" AS "r"
+      ORDER BY "r"."CreatedAt" DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[@__id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT "r"."Id", "r"."CookingTimeMinutes", "r"."CreatedAt", "r"."Description", "r"."Difficulty", "r"."ImageUrl", "r"."IngredientsJson", "r"."InstructionsJson", "r"."Servings", "r"."Tags", "r"."Title", "r"."UpdatedAt"
+      FROM "Recipes" AS "r"
+      WHERE "r"."Id" = @__id_0
+      LIMIT 1

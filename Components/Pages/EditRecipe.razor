@@ -1,0 +1,66 @@
+@page "/recipe/edit/{Id:int}"
+@using RecipeApp.Models
+@using RecipeApp.Services
+@using RecipeApp.Components.Shared
+@inject IRecipeService RecipeService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Rezept bearbeiten</PageTitle>
+
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="md:flex md:items-center md:justify-between mb-8">
+        <div class="flex-1 min-w-0">
+            <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+                Rezept bearbeiten
+            </h2>
+        </div>
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="flex justify-center mt-8">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        </div>
+    }
+    else if (Recipe == null)
+    {
+        <div class="text-center py-12 bg-white rounded-lg shadow">
+            <h3 class="mt-2 text-sm font-medium text-gray-900">Rezept nicht gefunden</h3>
+            <div class="mt-6">
+                <a href="/" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
+                    Zurück zur Übersicht
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="bg-white shadow px-4 py-5 sm:rounded-lg sm:p-6">
+            <RecipeForm Recipe="Recipe" OnSubmit="HandleSubmit" OnCancel="HandleCancel" />
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Recipe? Recipe;
+    private bool IsLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Recipe = await RecipeService.GetByIdAsync(Id);
+        IsLoading = false;
+    }
+
+    private async Task HandleSubmit(Recipe recipe)
+    {
+        await RecipeService.UpdateAsync(recipe);
+        NavigationManager.NavigateTo($"/recipe/{recipe.Id}");
+    }
+
+    private void HandleCancel()
+    {
+        NavigationManager.NavigateTo($"/recipe/{Id}");
+    }
+}

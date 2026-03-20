@@ -1,0 +1,204 @@
+@page "/recipe/{Id:int}"
+@using RecipeApp.Models
+@using RecipeApp.Services
+@using System.Text.Json
+@inject IRecipeService RecipeService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+<PageTitle>@(Recipe?.Title ?? "Rezept Details")</PageTitle>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    @if (IsLoading)
+    {
+        <div class="flex justify-center mt-8">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        </div>
+    }
+    else if (Recipe == null)
+    {
+        <div class="text-center py-12 bg-white rounded-lg shadow">
+            <h3 class="mt-2 text-sm font-medium text-gray-900">Rezept nicht gefunden</h3>
+            <p class="mt-1 text-sm text-gray-500">Das angeforderte Rezept existiert nicht oder wurde gelöscht.</p>
+            <div class="mt-6">
+                <a href="/" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
+                    Zurück zur Übersicht
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+            @if (!string.IsNullOrEmpty(Recipe.ImageUrl))
+            {
+                <div class="w-full h-64 md:h-96 relative">
+                    <img src="@Recipe.ImageUrl" alt="@Recipe.Title" class="w-full h-full object-cover" />
+                    <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black opacity-60 h-24"></div>
+                    <div class="absolute bottom-4 left-4 md:bottom-8 md:left-8">
+                        <h1 class="text-3xl font-bold text-white">@Recipe.Title</h1>
+                    </div>
+                </div>
+            }
+            <div class="px-4 py-5 sm:px-6 flex justify-between items-center flex-wrap gap-4">
+                <div>
+                    @if (string.IsNullOrEmpty(Recipe.ImageUrl))
+                    {
+                        <h1 class="text-3xl font-bold text-gray-900">@Recipe.Title</h1>
+                    }
+                    <p class="mt-1 max-w-2xl text-sm text-gray-500">
+                        Hinzugefügt am @Recipe.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")
+                    </p>
+                </div>
+                <div class="flex space-x-3">
+                    <a href="/recipe/edit/@Recipe.Id" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Bearbeiten
+                    </a>
+                    <button @onclick="DeleteRecipe" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                        Löschen
+                    </button>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-200 px-4 py-5 sm:p-0">
+                <dl class="sm:divide-y sm:divide-gray-200">
+                    <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Beschreibung</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">@Recipe.Description</dd>
+                    </div>
+
+                    <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Details</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                            <div class="flex flex-wrap gap-4">
+                                <div class="flex items-center">
+                                    <span class="font-semibold mr-2">Schwierigkeit:</span> @Recipe.Difficulty.ToString()
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="font-semibold mr-2">Kochzeit:</span> @Recipe.CookingTimeMinutes Minuten
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="font-semibold mr-2">Portionen:</span> @Recipe.Servings
+                                </div>
+                            </div>
+                        </dd>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(Recipe.Tags))
+                    {
+                        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                            <dt class="text-sm font-medium text-gray-500">Tags</dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 flex flex-wrap gap-2">
+                                @foreach (var tag in Recipe.Tags.Split(',').Select(t => t.Trim()))
+                                {
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                        @tag
+                                    </span>
+                                }
+                            </dd>
+                        </div>
+                    }
+                </dl>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="md:col-span-1">
+                <div class="bg-white shadow sm:rounded-lg">
+                    <div class="px-4 py-5 sm:p-6">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Zutaten</h3>
+                        <ul class="divide-y divide-gray-200">
+                            @foreach (var ingredient in GetIngredients())
+                            {
+                                <li class="py-3 flex items-center">
+                                    <svg class="h-5 w-5 text-indigo-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span class="text-gray-700">@ingredient</span>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="md:col-span-2">
+                <div class="bg-white shadow sm:rounded-lg">
+                    <div class="px-4 py-5 sm:p-6">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Zubereitung</h3>
+                        <div class="space-y-6">
+                            @{ var stepNumber = 1; }
+                            @foreach (var step in GetInstructions())
+                            {
+                                <div class="flex">
+                                    <div class="flex-shrink-0 mr-4">
+                                        <div class="flex items-center justify-center h-8 w-8 rounded-full bg-indigo-100 text-indigo-800 font-bold">
+                                            @stepNumber
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p class="text-gray-700 mt-1">@step</p>
+                                    </div>
+                                </div>
+                                stepNumber++;
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Recipe? Recipe;
+    private bool IsLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Recipe = await RecipeService.GetByIdAsync(Id);
+        IsLoading = false;
+    }
+
+    private List<string> GetIngredients()
+    {
+        if (string.IsNullOrEmpty(Recipe?.IngredientsJson) || Recipe.IngredientsJson == "[]")
+            return new List<string>();
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(Recipe.IngredientsJson) ?? new List<string>();
+        }
+        catch
+        {
+            return new List<string>();
+        }
+    }
+
+    private List<string> GetInstructions()
+    {
+        if (string.IsNullOrEmpty(Recipe?.InstructionsJson) || Recipe.InstructionsJson == "[]")
+            return new List<string>();
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(Recipe.InstructionsJson) ?? new List<string>();
+        }
+        catch
+        {
+            return new List<string>();
+        }
+    }
+
+    private async Task DeleteRecipe()
+    {
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Möchtest du dieses Rezept wirklich löschen?");
+        if (confirmed)
+        {
+            await RecipeService.DeleteAsync(Id);
+            NavigationManager.NavigateTo("/");
+        }
+    }
+}
