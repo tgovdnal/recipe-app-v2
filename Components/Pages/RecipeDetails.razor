@@ -3,12 +3,19 @@
 @using RecipeApp.Services
 @using System.Text.Json
 @inject IRecipeService RecipeService
+@inject IBringService BringService
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 
 <PageTitle>@(Recipe?.Title ?? "Rezept Details")</PageTitle>
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    @if (!string.IsNullOrEmpty(BringMessage))
+    {
+        <div class="mb-4 p-4 rounded-md @(IsBringSuccess ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800")">
+            @BringMessage
+        </div>
+    }
     @if (IsLoading)
     {
         <div class="flex justify-center mt-8">
@@ -106,7 +113,19 @@
             <div class="md:col-span-1">
                 <div class="bg-white shadow sm:rounded-lg">
                     <div class="px-4 py-5 sm:p-6">
-                        <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Zutaten</h3>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900">Zutaten</h3>
+                            <button @onclick="AddIngredientsToBring" disabled="@IsAddingToBring" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50">
+                                @if (IsAddingToBring)
+                                {
+                                    <span>Füge hinzu...</span>
+                                }
+                                else
+                                {
+                                    <span>Zutaten auf Einkaufsliste</span>
+                                }
+                            </button>
+                        </div>
                         <ul class="divide-y divide-gray-200">
                             @foreach (var ingredient in GetIngredients())
                             {
@@ -155,6 +174,9 @@
 
     private Recipe? Recipe;
     private bool IsLoading = true;
+    private bool IsAddingToBring = false;
+    private string? BringMessage;
+    private bool IsBringSuccess = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -200,5 +222,38 @@
             await RecipeService.DeleteAsync(Id);
             NavigationManager.NavigateTo("/");
         }
+    }
+
+    private async Task AddIngredientsToBring()
+    {
+        if (Recipe == null) return;
+
+        var ingredients = GetIngredients();
+        if (!ingredients.Any()) return;
+
+        IsAddingToBring = true;
+        BringMessage = null;
+
+        var success = await BringService.AddItemsAsync(ingredients);
+
+        if (success)
+        {
+            IsBringSuccess = true;
+            BringMessage = "Zutaten wurden erfolgreich zur Einkaufsliste hinzugefügt!";
+        }
+        else
+        {
+            IsBringSuccess = false;
+            BringMessage = "Fehler beim Hinzufügen der Zutaten zur Einkaufsliste. Bitte überprüfe die Konfiguration.";
+        }
+
+        IsAddingToBring = false;
+
+        // Hide message after 5 seconds
+        _ = Task.Delay(5000).ContinueWith(_ =>
+        {
+            BringMessage = null;
+            InvokeAsync(StateHasChanged);
+        });
     }
 }
