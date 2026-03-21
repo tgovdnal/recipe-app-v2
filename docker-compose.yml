@@ -1,0 +1,27 @@
+services:
+  recipeapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: recipe-app
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Data Source=/app/Data/recipes.db
+      - BringApi__Email=your_email@example.com
+      - BringApi__Password=your_password
+    volumes:
+      - recipe_db_data:/app/Data
+      - recipe_images_data:/app/wwwroot/images/recipes/
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  recipe_db_data:
+  recipe_images_data:
