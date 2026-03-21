@@ -1,0 +1,145 @@
+@page "/recipe/import"
+@using RecipeApp.Models
+@using RecipeApp.Services
+@using RecipeApp.Components.Shared
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@using System.Security.Claims
+@inject IRecipeImportService RecipeImportService
+@inject IRecipeService RecipeService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Rezept importieren</PageTitle>
+
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="md:flex md:items-center md:justify-between mb-8">
+        <div class="flex-1 min-w-0">
+            <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+                Rezept von URL importieren
+            </h2>
+        </div>
+    </div>
+
+    @if (ImportedRecipe == null)
+    {
+        <div class="bg-white shadow px-4 py-5 sm:rounded-lg sm:p-6 mb-8">
+            <EditForm Model="Input" OnValidSubmit="HandleImport" FormName="ImportForm">
+                <DataAnnotationsValidator />
+
+                @if (!string.IsNullOrEmpty(ErrorMessage))
+                {
+                    <div class="rounded-md bg-red-50 p-4 mb-4">
+                        <div class="flex">
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-red-800">
+                                    @ErrorMessage
+                                </h3>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <div class="space-y-4">
+                    <div>
+                        <label for="url" class="block text-sm font-medium text-gray-700">Rezept URL</label>
+                        <div class="mt-1 flex rounded-md shadow-sm">
+                            <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">
+                                http://
+                            </span>
+                            <InputText id="url" @bind-Value="Input.Url" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-r-md border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border" placeholder="www.example.com/rezept" />
+                        </div>
+                        <ValidationMessage For="@(() => Input.Url)" class="text-red-500 text-xs mt-1" />
+                    </div>
+
+                    <div class="flex justify-end">
+                        <button type="submit" disabled="@IsLoading" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            @if (IsLoading)
+                            {
+                                <span>Importiere...</span>
+                            }
+                            else
+                            {
+                                <span>Importieren</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+    }
+    else
+    {
+        <div class="bg-white shadow px-4 py-5 sm:rounded-lg sm:p-6">
+            <div class="mb-4 p-4 bg-green-50 rounded-md">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-green-800">Erfolgreich importiert</h3>
+                        <div class="mt-2 text-sm text-green-700">
+                            <p>Du kannst das Rezept nun überprüfen und anpassen, bevor du es speicherst.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <RecipeForm Recipe="ImportedRecipe" OnSubmit="HandleSubmit" OnCancel="HandleCancel" />
+        </div>
+    }
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private ImportModel Input { get; set; } = new();
+
+    private Recipe? ImportedRecipe;
+    private bool IsLoading;
+    private string? ErrorMessage;
+
+    public class ImportModel
+    {
+        [Required(ErrorMessage = "Bitte gib eine URL ein.")]
+        [Url(ErrorMessage = "Bitte gib eine gültige URL ein (inkl. http:// oder https://).")]
+        public string Url { get; set; } = "";
+    }
+
+    private async Task HandleImport()
+    {
+        IsLoading = true;
+        ErrorMessage = null;
+
+        try
+        {
+            var recipe = await RecipeImportService.ImportAsync(Input.Url);
+            ImportedRecipe = recipe;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task HandleSubmit(Recipe recipe)
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+
+        await RecipeService.CreateAsync(recipe, userId);
+        NavigationManager.NavigateTo("/");
+    }
+
+    private void HandleCancel()
+    {
+        ImportedRecipe = null;
+        Input.Url = "";
+    }
+}

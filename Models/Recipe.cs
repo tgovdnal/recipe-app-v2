@@ -37,6 +37,9 @@ public class Recipe
 
     public string? ImageUrl { get; set; }
 
+    public string? OwnerId { get; set; }
+    public Microsoft.AspNetCore.Identity.IdentityUser? Owner { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

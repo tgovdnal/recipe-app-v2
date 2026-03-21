@@ -45,10 +45,11 @@ public class RecipeService : IRecipeService
         return await _context.Recipes.FirstOrDefaultAsync(r => r.Id == id);
     }
 
-    public async Task<Recipe> CreateAsync(Recipe recipe)
+    public async Task<Recipe> CreateAsync(Recipe recipe, string? userId)
     {
         recipe.CreatedAt = DateTime.UtcNow;
         recipe.UpdatedAt = DateTime.UtcNow;
+        recipe.OwnerId = userId;
 
         _context.Recipes.Add(recipe);
         await _context.SaveChangesAsync();
@@ -56,13 +57,21 @@ public class RecipeService : IRecipeService
         return recipe;
     }
 
-    public async Task<Recipe> UpdateAsync(Recipe recipe)
+    public async Task<Recipe> UpdateAsync(Recipe recipe, string? userId, bool isAdmin)
     {
         var existingRecipe = await _context.Recipes.FindAsync(recipe.Id);
         if (existingRecipe == null)
         {
             throw new Exception($"Rezept mit ID {recipe.Id} wurde nicht gefunden.");
         }
+
+        if (existingRecipe.OwnerId != userId && !isAdmin)
+        {
+            throw new UnauthorizedAccessException("Du bist nicht berechtigt, dieses Rezept zu bearbeiten.");
+        }
+
+        // Preserve original owner
+        recipe.OwnerId = existingRecipe.OwnerId;
 
         _context.Entry(existingRecipe).CurrentValues.SetValues(recipe);
         existingRecipe.UpdatedAt = DateTime.UtcNow;
@@ -71,11 +80,16 @@ public class RecipeService : IRecipeService
         return existingRecipe;
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task DeleteAsync(int id, string? userId, bool isAdmin)
     {
         var recipe = await _context.Recipes.FindAsync(id);
         if (recipe != null)
         {
+            if (recipe.OwnerId != userId && !isAdmin)
+            {
+                throw new UnauthorizedAccessException("Du bist nicht berechtigt, dieses Rezept zu löschen.");
+            }
+
             _context.Recipes.Remove(recipe);
             await _context.SaveChangesAsync();
 

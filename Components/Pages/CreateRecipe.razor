@@ -2,8 +2,12 @@
 @using RecipeApp.Models
 @using RecipeApp.Services
 @using RecipeApp.Components.Shared
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
 @inject IRecipeService RecipeService
 @inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Neues Rezept</PageTitle>
 
@@ -24,7 +28,10 @@
 @code {
     private async Task HandleSubmit(Recipe recipe)
     {
-        await RecipeService.CreateAsync(recipe);
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+
+        await RecipeService.CreateAsync(recipe, userId);
         NavigationManager.NavigateTo("/");
     }
 

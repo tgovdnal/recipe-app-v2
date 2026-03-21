@@ -1,10 +1,12 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using RecipeApp.Models;
 
 namespace RecipeApp.Data;
 
-public class RecipeDbContext : DbContext
+public class RecipeDbContext : IdentityDbContext<IdentityUser>
 {
     public RecipeDbContext(DbContextOptions<RecipeDbContext> options) : base(options)
     {
