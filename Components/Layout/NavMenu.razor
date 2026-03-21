@@ -15,10 +15,37 @@
                         <NavLink href="/" Match="NavLinkMatch.All" class="text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500" ActiveClass="bg-indigo-700">
                             Startseite
                         </NavLink>
-                        <NavLink href="/recipe/create" class="text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500" ActiveClass="bg-indigo-700">
-                            Neues Rezept
-                        </NavLink>
+                        <AuthorizeView>
+                            <Authorized>
+                                <NavLink href="/recipe/create" class="text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500" ActiveClass="bg-indigo-700">
+                                    Neues Rezept
+                                </NavLink>
+                                <NavLink href="/recipe/import" class="text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500" ActiveClass="bg-indigo-700">
+                                    Rezept importieren
+                                </NavLink>
+                            </Authorized>
+                        </AuthorizeView>
                     </div>
+                </div>
+            </div>
+            <div class="hidden md:block">
+                <div class="ml-4 flex items-center md:ml-6 space-x-4">
+                    <AuthorizeView>
+                        <Authorized>
+                            <span class="text-indigo-200 text-sm">@context.User.Identity?.Name</span>
+                            <form action="Account/Logout" method="post" class="inline">
+                                <AntiforgeryToken />
+                                <input type="hidden" name="ReturnUrl" value="/" />
+                                <button type="submit" class="text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500">
+                                    Abmelden
+                                </button>
+                            </form>
+                        </Authorized>
+                        <NotAuthorized>
+                            <a href="/login" class="text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500">Anmelden</a>
+                            <a href="/register" class="text-white px-3 py-2 rounded-md text-sm font-medium bg-indigo-500 hover:bg-indigo-400">Registrieren</a>
+                        </NotAuthorized>
+                    </AuthorizeView>
                 </div>
             </div>
             <div class="-mr-2 flex md:hidden">
@@ -39,9 +66,27 @@
                 <NavLink href="/" Match="NavLinkMatch.All" class="text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-indigo-500" ActiveClass="bg-indigo-700">
                     Startseite
                 </NavLink>
-                <NavLink href="/recipe/create" class="text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-indigo-500" ActiveClass="bg-indigo-700">
-                    Neues Rezept
-                </NavLink>
+                <AuthorizeView>
+                    <Authorized>
+                        <NavLink href="/recipe/create" class="text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-indigo-500" ActiveClass="bg-indigo-700">
+                            Neues Rezept
+                        </NavLink>
+                        <NavLink href="/recipe/import" class="text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-indigo-500" ActiveClass="bg-indigo-700">
+                            Rezept importieren
+                        </NavLink>
+                        <form action="Account/Logout" method="post" class="block">
+                            <AntiforgeryToken />
+                            <input type="hidden" name="ReturnUrl" value="/" />
+                            <button type="submit" class="w-full text-left text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-indigo-500">
+                                Abmelden (@context.User.Identity?.Name)
+                            </button>
+                        </form>
+                    </Authorized>
+                    <NotAuthorized>
+                        <a href="/login" class="text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-indigo-500">Anmelden</a>
+                        <a href="/register" class="text-white block px-3 py-2 rounded-md text-base font-medium bg-indigo-500 hover:bg-indigo-400">Registrieren</a>
+                    </NotAuthorized>
+                </AuthorizeView>
             </div>
         </div>
     }

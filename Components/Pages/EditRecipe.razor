@@ -2,8 +2,12 @@
 @using RecipeApp.Models
 @using RecipeApp.Services
 @using RecipeApp.Components.Shared
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
 @inject IRecipeService RecipeService
 @inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Rezept bearbeiten</PageTitle>
 
@@ -50,12 +54,27 @@
     protected override async Task OnInitializedAsync()
     {
         Recipe = await RecipeService.GetByIdAsync(Id);
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var userId = user.FindFirst(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+
+        if (Recipe != null && Recipe.OwnerId != userId && user.Identity?.Name != "admin@rezeptbuch.de")
+        {
+             NavigationManager.NavigateTo("/"); // Redirect if not authorized
+        }
+
         IsLoading = false;
     }
 
     private async Task HandleSubmit(Recipe recipe)
     {
-        await RecipeService.UpdateAsync(recipe);
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var userId = user.FindFirst(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+        var isAdmin = user.Identity?.Name == "admin@rezeptbuch.de";
+
+        await RecipeService.UpdateAsync(recipe, userId, isAdmin);
         NavigationManager.NavigateTo($"/recipe/{recipe.Id}");
     }
 

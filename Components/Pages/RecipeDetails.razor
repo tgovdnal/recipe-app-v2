@@ -2,10 +2,12 @@
 @using RecipeApp.Models
 @using RecipeApp.Services
 @using System.Text.Json
+@using System.Security.Claims
 @inject IRecipeService RecipeService
 @inject IBringService BringService
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>@(Recipe?.Title ?? "Rezept Details")</PageTitle>
 
@@ -57,14 +59,18 @@
                         Hinzugefügt am @Recipe.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")
                     </p>
                 </div>
-                <div class="flex space-x-3">
-                    <a href="/recipe/edit/@Recipe.Id" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        Bearbeiten
-                    </a>
-                    <button @onclick="DeleteRecipe" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                        Löschen
-                    </button>
-                </div>
+
+                @if (IsOwnerOrAdmin)
+                {
+                    <div class="flex space-x-3">
+                        <a href="/recipe/edit/@Recipe.Id" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            Bearbeiten
+                        </a>
+                        <button @onclick="DeleteRecipe" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            Löschen
+                        </button>
+                    </div>
+                }
             </div>
 
             <div class="border-t border-gray-200 px-4 py-5 sm:p-0">
@@ -178,9 +184,24 @@
     private string? BringMessage;
     private bool IsBringSuccess = false;
 
+    private bool IsOwnerOrAdmin = false;
+    private string? currentUserId;
+    private bool isAdmin = false;
+
     protected override async Task OnInitializedAsync()
     {
         Recipe = await RecipeService.GetByIdAsync(Id);
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        currentUserId = user.FindFirst(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+        isAdmin = user.Identity?.Name == "admin@rezeptbuch.de";
+
+        if (Recipe != null)
+        {
+            IsOwnerOrAdmin = isAdmin || (currentUserId != null && currentUserId == Recipe.OwnerId);
+        }
+
         IsLoading = false;
     }
 
@@ -219,7 +240,7 @@
         bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Möchtest du dieses Rezept wirklich löschen?");
         if (confirmed)
         {
-            await RecipeService.DeleteAsync(Id);
+            await RecipeService.DeleteAsync(Id, currentUserId, isAdmin);
             NavigationManager.NavigateTo("/");
         }
     }

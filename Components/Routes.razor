@@ -1,6 +1,18 @@
 ﻿<Router AppAssembly="typeof(Program).Assembly">
     <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+            <NotAuthorized>
+                <div class="flex items-center justify-center h-screen bg-gray-100">
+                    <div class="text-center">
+                        <h1 class="text-4xl font-bold text-gray-900 mb-4">Zugriff verweigert</h1>
+                        <p class="text-lg text-gray-600 mb-8">Du musst angemeldet sein, um diese Seite zu sehen.</p>
+                        <a href="/login" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
+                            Zum Login
+                        </a>
+                    </div>
+                </div>
+            </NotAuthorized>
+        </AuthorizeRouteView>
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
 </Router>
