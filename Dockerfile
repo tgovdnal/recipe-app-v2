@@ -9,6 +9,9 @@ RUN apt-get update && apt-get install -y curl
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
 RUN apt-get install -y nodejs
 
+# Install npm dependencies for Tailwind CSS
+RUN npm install
+
 # Build and publish
 RUN dotnet publish "RecipeApp.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
