@@ -42,4 +42,6 @@ public class Recipe
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+
+    public ICollection<Category> Categories { get; set; } = new List<Category>();
 }

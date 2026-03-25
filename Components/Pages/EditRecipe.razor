@@ -40,7 +40,7 @@
     else
     {
         <div class="bg-white shadow px-4 py-5 sm:rounded-lg sm:p-6">
-            <RecipeForm Recipe="Recipe" OnSubmit="HandleSubmit" OnCancel="HandleCancel" />
+            <RecipeForm Recipe="Recipe" OnSubmitWithCategories="HandleSubmit" OnCancel="HandleCancel" />
         </div>
     }
 </div>
@@ -67,15 +67,15 @@
         IsLoading = false;
     }
 
-    private async Task HandleSubmit(Recipe recipe)
+    private async Task HandleSubmit((Recipe recipe, List<int> categoryIds) data)
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         var userId = user.FindFirst(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
         var isAdmin = user.Identity?.Name == "admin@rezeptbuch.de";
 
-        await RecipeService.UpdateAsync(recipe, userId, isAdmin);
-        NavigationManager.NavigateTo($"/recipe/{recipe.Id}");
+        await RecipeService.UpdateAsync(data.recipe, data.categoryIds, userId, isAdmin);
+        NavigationManager.NavigateTo($"/recipe/{data.recipe.Id}");
     }
 
     private void HandleCancel()

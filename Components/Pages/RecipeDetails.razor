@@ -111,6 +111,21 @@
                             </dd>
                         </div>
                     }
+
+                    @if (Recipe.Categories != null && Recipe.Categories.Any())
+                    {
+                        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                            <dt class="text-sm font-medium text-gray-500">Kategorien</dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 flex flex-wrap gap-2">
+                                @foreach (var cat in Recipe.Categories)
+                                {
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800 border border-gray-200 shadow-sm">
+                                        <span class="mr-1">@cat.Icon</span> @cat.Name
+                                    </span>
+                                }
+                            </dd>
+                        </div>
+                    }
                 </dl>
             </div>
         </div>

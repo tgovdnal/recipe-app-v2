@@ -16,9 +16,9 @@ public class RecipeService : IRecipeService
         _environment = environment;
     }
 
-    public async Task<List<Recipe>> GetAllAsync(string? searchTerm = null, string? tag = null, Difficulty? difficulty = null)
+    public async Task<List<Recipe>> GetAllAsync(string? searchTerm = null, string? tag = null, Difficulty? difficulty = null, int? categoryId = null)
     {
-        var query = _context.Recipes.AsQueryable();
+        var query = _context.Recipes.Include(r => r.Categories).AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
@@ -37,19 +37,30 @@ public class RecipeService : IRecipeService
             query = query.Where(r => r.Difficulty == difficulty.Value);
         }
 
+        if (categoryId.HasValue)
+        {
+            query = query.Where(r => r.Categories.Any(c => c.Id == categoryId.Value));
+        }
+
         return await query.OrderByDescending(r => r.CreatedAt).ToListAsync();
     }
 
     public async Task<Recipe?> GetByIdAsync(int id)
     {
-        return await _context.Recipes.FirstOrDefaultAsync(r => r.Id == id);
+        return await _context.Recipes.Include(r => r.Categories).FirstOrDefaultAsync(r => r.Id == id);
     }
 
-    public async Task<Recipe> CreateAsync(Recipe recipe, string? userId)
+    public async Task<Recipe> CreateAsync(Recipe recipe, List<int> categoryIds, string? userId)
     {
         recipe.CreatedAt = DateTime.UtcNow;
         recipe.UpdatedAt = DateTime.UtcNow;
         recipe.OwnerId = userId;
+
+        if (categoryIds != null && categoryIds.Any())
+        {
+            var categories = await _context.Categories.Where(c => categoryIds.Contains(c.Id)).ToListAsync();
+            recipe.Categories = categories;
+        }
 
         _context.Recipes.Add(recipe);
         await _context.SaveChangesAsync();
@@ -57,9 +68,9 @@ public class RecipeService : IRecipeService
         return recipe;
     }
 
-    public async Task<Recipe> UpdateAsync(Recipe recipe, string? userId, bool isAdmin)
+    public async Task<Recipe> UpdateAsync(Recipe recipe, List<int> categoryIds, string? userId, bool isAdmin)
     {
-        var existingRecipe = await _context.Recipes.FindAsync(recipe.Id);
+        var existingRecipe = await _context.Recipes.Include(r => r.Categories).FirstOrDefaultAsync(r => r.Id == recipe.Id);
         if (existingRecipe == null)
         {
             throw new Exception($"Rezept mit ID {recipe.Id} wurde nicht gefunden.");
@@ -75,6 +86,16 @@ public class RecipeService : IRecipeService
 
         _context.Entry(existingRecipe).CurrentValues.SetValues(recipe);
         existingRecipe.UpdatedAt = DateTime.UtcNow;
+
+        existingRecipe.Categories.Clear();
+        if (categoryIds != null && categoryIds.Any())
+        {
+            var categories = await _context.Categories.Where(c => categoryIds.Contains(c.Id)).ToListAsync();
+            foreach (var category in categories)
+            {
+                existingRecipe.Categories.Add(category);
+            }
+        }
 
         await _context.SaveChangesAsync();
         return existingRecipe;

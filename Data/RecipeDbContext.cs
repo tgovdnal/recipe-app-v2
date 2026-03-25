@@ -13,10 +13,31 @@ public class RecipeDbContext : IdentityDbContext<IdentityUser>
     }
 
     public DbSet<Recipe> Recipes { get; set; } = null!;
+    public DbSet<Category> Categories { get; set; } = null!;
+    public DbSet<MealPlan> MealPlans { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Many-to-Many Recipe <-> Category
+        modelBuilder.Entity<Recipe>()
+            .HasMany(r => r.Categories)
+            .WithMany(c => c.Recipes)
+            .UsingEntity("RecipeCategory");
+
+        var categories = new List<Category>
+        {
+            new Category { Id = 1, Name = "Vorspeisen", Icon = "🥗", SortOrder = 1 },
+            new Category { Id = 2, Name = "Hauptgerichte", Icon = "🍽️", SortOrder = 2 },
+            new Category { Id = 3, Name = "Desserts", Icon = "🍨", SortOrder = 3 },
+            new Category { Id = 4, Name = "Salate", Icon = "🥬", SortOrder = 4 },
+            new Category { Id = 5, Name = "Suppen", Icon = "🥣", SortOrder = 5 },
+            new Category { Id = 6, Name = "Snacks", Icon = "🥨", SortOrder = 6 },
+            new Category { Id = 7, Name = "Getränke", Icon = "🥤", SortOrder = 7 },
+            new Category { Id = 8, Name = "Backen", Icon = "🍰", SortOrder = 8 }
+        };
+        modelBuilder.Entity<Category>().HasData(categories);
 
         var recipes = new List<Recipe>
         {
