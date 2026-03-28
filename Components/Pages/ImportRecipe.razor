@@ -88,7 +88,7 @@
                 </div>
             </div>
 
-            <RecipeForm Recipe="ImportedRecipe" OnSubmit="HandleSubmit" OnCancel="HandleCancel" />
+            <RecipeForm Recipe="ImportedRecipe" OnSubmitWithCategories="HandleSubmit" OnCancel="HandleCancel" />
         </div>
     }
 </div>
@@ -128,12 +128,12 @@
         }
     }
 
-    private async Task HandleSubmit(Recipe recipe)
+    private async Task HandleSubmit((Recipe recipe, List<int> categoryIds) data)
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var userId = authState.User.FindFirst(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
 
-        await RecipeService.CreateAsync(recipe, userId);
+        await RecipeService.CreateAsync(data.recipe, data.categoryIds, userId);
         NavigationManager.NavigateTo("/");
     }
 

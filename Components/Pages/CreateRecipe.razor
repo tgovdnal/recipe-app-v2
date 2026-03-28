@@ -21,17 +21,17 @@
     </div>
 
     <div class="bg-white shadow px-4 py-5 sm:rounded-lg sm:p-6">
-        <RecipeForm OnSubmit="HandleSubmit" OnCancel="HandleCancel" />
+        <RecipeForm OnSubmitWithCategories="HandleSubmit" OnCancel="HandleCancel" />
     </div>
 </div>
 
 @code {
-    private async Task HandleSubmit(Recipe recipe)
+    private async Task HandleSubmit((Recipe recipe, List<int> categoryIds) data)
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var userId = authState.User.FindFirst(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
 
-        await RecipeService.CreateAsync(recipe, userId);
+        await RecipeService.CreateAsync(data.recipe, data.categoryIds, userId);
         NavigationManager.NavigateTo("/");
     }
 

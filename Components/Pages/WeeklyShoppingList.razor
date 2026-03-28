@@ -1,0 +1,222 @@
+@page "/weekly-shopping-list"
+@using RecipeApp.Models
+@using RecipeApp.Services
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using System.Text.Json
+@attribute [Authorize]
+@inject IMealPlanService MealPlanService
+@inject IBringService BringService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+
+<PageTitle>Einkaufsliste</PageTitle>
+
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="md:flex md:items-center md:justify-between mb-8">
+        <div class="flex-1 min-w-0">
+            <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+                Einkaufsliste: @CurrentWeekStart.ToString("dd.MM.") - @CurrentWeekStart.AddDays(6).ToString("dd.MM.yyyy")
+            </h2>
+        </div>
+        <div class="mt-4 flex md:mt-0 md:ml-4 gap-3">
+            <button @onclick="PreviousWeek" class="inline-flex items-center p-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+            </button>
+            <button @onclick="NextWeek" class="inline-flex items-center p-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+            </button>
+            <button @onclick="SendToBring" disabled="@IsSending" class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50">
+                @if (IsSending)
+                {
+                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Sende...</span>
+                }
+                else
+                {
+                    <span>An Bring! senden</span>
+                }
+            </button>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(BringMessage))
+    {
+        <div class="rounded-md p-4 mb-6 @(IsBringSuccess ? "bg-green-50" : "bg-red-50")">
+            <div class="flex">
+                <div class="ml-3">
+                    <p class="text-sm font-medium @(IsBringSuccess ? "text-green-800" : "text-red-800")">
+                        @BringMessage
+                    </p>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (IsLoading)
+    {
+        <div class="flex justify-center mt-8">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        </div>
+    }
+    else if (!Ingredients.Any())
+    {
+        <div class="text-center py-12 bg-white rounded-lg shadow">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">Keine Zutaten für diese Woche</h3>
+            <p class="mt-1 text-sm text-gray-500">Füge Rezepte zu deinem Wochenplan hinzu, um eine Einkaufsliste zu generieren.</p>
+            <div class="mt-6">
+                <a href="/mealplanner" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
+                    Zum Wochenplan
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="bg-white shadow overflow-hidden sm:rounded-md">
+            <ul class="divide-y divide-gray-200">
+                @foreach (var ingredient in Ingredients)
+                {
+                    var isChecked = CheckedItems.Contains(ingredient);
+                    <li>
+                        <div class="px-4 py-4 sm:px-6 hover:bg-gray-50 transition-colors flex items-center cursor-pointer" @onclick="() => ToggleItem(ingredient)">
+                            <div class="flex items-center h-5 mr-4">
+                                <input type="checkbox" checked="@isChecked" class="focus:ring-indigo-500 h-5 w-5 text-indigo-600 border-gray-300 rounded" @onclick:stopPropagation />
+                            </div>
+                            <div class="text-sm font-medium text-gray-900 @(isChecked ? "line-through text-gray-400" : "")">
+                                @ingredient
+                            </div>
+                        </div>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+</div>
+
+@code {
+    private DateTime CurrentWeekStart;
+    private string UserId = string.Empty;
+    private bool IsLoading = true;
+
+    private List<string> Ingredients = new();
+    private HashSet<string> CheckedItems = new();
+
+    private bool IsSending = false;
+    private string? BringMessage;
+    private bool IsBringSuccess;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        UserId = authState.User.FindFirst(c => c.Type == ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+
+        var today = DateTime.Today;
+        int diff = (7 + (today.DayOfWeek - DayOfWeek.Monday)) % 7;
+        CurrentWeekStart = today.AddDays(-1 * diff).Date;
+
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        var mealPlans = await MealPlanService.GetMealPlansForWeekAsync(UserId, CurrentWeekStart);
+
+        var allIngredients = new List<string>();
+        foreach (var plan in mealPlans)
+        {
+            if (plan.Recipe != null && !string.IsNullOrEmpty(plan.Recipe.IngredientsJson) && plan.Recipe.IngredientsJson != "[]")
+            {
+                try
+                {
+                    var recipeIngredients = JsonSerializer.Deserialize<List<string>>(plan.Recipe.IngredientsJson);
+                    if (recipeIngredients != null)
+                    {
+                        allIngredients.AddRange(recipeIngredients);
+                    }
+                }
+                catch { }
+            }
+        }
+
+        // Distinct and sorted ingredients
+        Ingredients = allIngredients
+            .Select(i => i.Trim())
+            .Where(i => !string.IsNullOrEmpty(i))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(i => i)
+            .ToList();
+
+        CheckedItems.Clear();
+        IsLoading = false;
+    }
+
+    private void ToggleItem(string ingredient)
+    {
+        if (CheckedItems.Contains(ingredient))
+        {
+            CheckedItems.Remove(ingredient);
+        }
+        else
+        {
+            CheckedItems.Add(ingredient);
+        }
+    }
+
+    private async Task PreviousWeek()
+    {
+        CurrentWeekStart = CurrentWeekStart.AddDays(-7);
+        await LoadData();
+        BringMessage = null;
+    }
+
+    private async Task NextWeek()
+    {
+        CurrentWeekStart = CurrentWeekStart.AddDays(7);
+        await LoadData();
+        BringMessage = null;
+    }
+
+    private async Task SendToBring()
+    {
+        var itemsToSend = Ingredients.Where(i => !CheckedItems.Contains(i)).ToList();
+
+        if (!itemsToSend.Any())
+        {
+            BringMessage = "Keine Zutaten ausgewählt.";
+            IsBringSuccess = false;
+            return;
+        }
+
+        IsSending = true;
+        BringMessage = null;
+
+        var success = await BringService.AddItemsAsync(itemsToSend);
+
+        if (success)
+        {
+            IsBringSuccess = true;
+            BringMessage = "Zutaten wurden erfolgreich an Bring! gesendet.";
+        }
+        else
+        {
+            IsBringSuccess = false;
+            BringMessage = "Fehler beim Senden an Bring!. Bitte überprüfe die Konfiguration.";
+        }
+
+        IsSending = false;
+
+        _ = Task.Delay(5000).ContinueWith(_ =>
+        {
+            BringMessage = null;
+            InvokeAsync(StateHasChanged);
+        });
+    }
+}

@@ -44,6 +44,8 @@ builder.Services.AddIdentityCore<IdentityUser>(options => options.SignIn.Require
     .AddDefaultTokenProviders();
 
 builder.Services.AddScoped<RecipeApp.Services.IRecipeService, RecipeApp.Services.RecipeService>();
+builder.Services.AddScoped<RecipeApp.Services.ICategoryService, RecipeApp.Services.CategoryService>();
+builder.Services.AddScoped<RecipeApp.Services.IMealPlanService, RecipeApp.Services.MealPlanService>();
 builder.Services.AddHttpClient<RecipeApp.Services.IBringService, RecipeApp.Services.BringService>();
 builder.Services.AddHttpClient<RecipeApp.Services.IRecipeImportService, RecipeApp.Services.RecipeImportService>();
 
