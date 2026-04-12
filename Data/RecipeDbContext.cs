@@ -15,6 +15,8 @@ public class RecipeDbContext : IdentityDbContext<IdentityUser>
     public DbSet<Recipe> Recipes { get; set; } = null!;
     public DbSet<Category> Categories { get; set; } = null!;
     public DbSet<MealPlan> MealPlans { get; set; } = null!;
+    public DbSet<Comment> Comments { get; set; } = null!;
+    public DbSet<Rating> Ratings { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

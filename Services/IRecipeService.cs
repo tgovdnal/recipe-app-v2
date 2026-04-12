@@ -11,4 +11,6 @@ public interface IRecipeService
     Task<Recipe> UpdateAsync(Recipe recipe, List<int> categoryIds, string? userId, bool isAdmin);
     Task DeleteAsync(int id, string? userId, bool isAdmin);
     Task<string?> UploadImageAsync(IBrowserFile file);
+    Task AddCommentAsync(int recipeId, string userId, string text);
+    Task AddOrUpdateRatingAsync(int recipeId, string userId, int score);
 }

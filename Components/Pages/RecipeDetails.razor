@@ -58,19 +58,42 @@
                     <p class="mt-1 max-w-2xl text-sm text-gray-500">
                         Hinzugefügt am @Recipe.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")
                     </p>
+                    @if (Recipe.Ratings != null && Recipe.Ratings.Any())
+                    {
+                        <div class="mt-2 flex items-center text-sm text-yellow-500">
+                            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                            <span class="ml-1 text-gray-600">@Math.Round(Recipe.Ratings.Average(r => r.Score), 1) (@Recipe.Ratings.Count)</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="mt-2 text-sm text-gray-400">Keine Bewertungen</div>
+                    }
                 </div>
 
-                @if (IsOwnerOrAdmin)
-                {
-                    <div class="flex space-x-3">
+                <div class="flex space-x-3">
+                    <button @onclick="ShareRecipe" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        @if (isCopied)
+                        {
+                            <span class="text-green-600">Link kopiert!</span>
+                        }
+                        else
+                        {
+                            <span>Teilen</span>
+                        }
+                    </button>
+                    @if (IsOwnerOrAdmin)
+                    {
                         <a href="/recipe/edit/@Recipe.Id" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                             Bearbeiten
                         </a>
                         <button @onclick="DeleteRecipe" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                             Löschen
                         </button>
-                    </div>
-                }
+                    }
+                </div>
             </div>
 
             <div class="border-t border-gray-200 px-4 py-5 sm:p-0">
@@ -187,6 +210,81 @@
                 </div>
             </div>
         </div>
+
+        <div class="mt-8 bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Bewertungen & Kommentare</h3>
+
+                @if (currentUserId != null)
+                {
+                    <div class="mb-8 border-b border-gray-200 pb-8">
+                        <h4 class="text-md font-medium text-gray-900 mb-2">Rezept bewerten</h4>
+                        <div class="flex items-center space-x-1 mb-4">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                var starValue = i;
+                                <button @onclick="() => RateRecipe(starValue)" class="focus:outline-none">
+                                    <svg class="h-8 w-8 @(UserRating >= starValue ? "text-yellow-400" : "text-gray-300") hover:text-yellow-400 transition-colors" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                    </svg>
+                                </button>
+                            }
+                        </div>
+
+                        <h4 class="text-md font-medium text-gray-900 mb-2">Kommentar schreiben</h4>
+                        <div class="mt-1">
+                            <textarea @bind="NewCommentText" maxlength="1000" rows="3" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2" placeholder="Wie hat es dir geschmeckt?"></textarea>
+                        </div>
+                        <div class="mt-3 flex justify-end">
+                            <button @onclick="SubmitComment" disabled="@string.IsNullOrWhiteSpace(NewCommentText)" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50">
+                                Kommentieren
+                            </button>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="mb-8 p-4 bg-gray-50 rounded-md text-sm text-gray-700">
+                        Bitte <a href="/Account/Login" class="text-indigo-600 hover:text-indigo-500 font-medium">melde dich an</a>, um dieses Rezept zu bewerten oder zu kommentieren.
+                    </div>
+                }
+
+                <div>
+                    @if (Recipe.Comments != null && Recipe.Comments.Any())
+                    {
+                        <ul class="space-y-6">
+                            @foreach (var comment in Recipe.Comments.OrderByDescending(c => c.CreatedAt))
+                            {
+                                <li class="bg-gray-50 px-4 py-4 sm:px-6 rounded-lg">
+                                    <div class="flex space-x-3">
+                                        <div class="flex-shrink-0">
+                                            <div class="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-800 font-bold">
+                                                @((comment.User?.UserName ?? "U")[0].ToString().ToUpper())
+                                            </div>
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <p class="text-sm font-medium text-gray-900">
+                                                @(comment.User?.UserName ?? "Unbekannter Benutzer")
+                                            </p>
+                                            <p class="text-sm text-gray-500">
+                                                @comment.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                                            </p>
+                                            <div class="mt-2 text-sm text-gray-700 whitespace-pre-line">
+                                                @comment.Text
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="text-gray-500 text-sm">Noch keine Kommentare vorhanden. Sei der Erste!</p>
+                    }
+                </div>
+            </div>
+        </div>
     }
 </div>
 
@@ -203,6 +301,10 @@
     private string? currentUserId;
     private bool isAdmin = false;
 
+    private bool isCopied = false;
+    private string NewCommentText = string.Empty;
+    private int UserRating = 0;
+
     protected override async Task OnInitializedAsync()
     {
         Recipe = await RecipeService.GetByIdAsync(Id);
@@ -215,6 +317,15 @@
         if (Recipe != null)
         {
             IsOwnerOrAdmin = isAdmin || (currentUserId != null && currentUserId == Recipe.OwnerId);
+
+            if (currentUserId != null && Recipe.Ratings != null)
+            {
+                var existingRating = Recipe.Ratings.FirstOrDefault(r => r.UserId == currentUserId);
+                if (existingRating != null)
+                {
+                    UserRating = existingRating.Score;
+                }
+            }
         }
 
         IsLoading = false;
@@ -291,5 +402,40 @@
             BringMessage = null;
             InvokeAsync(StateHasChanged);
         });
+    }
+
+    private async Task ShareRecipe()
+    {
+        var url = NavigationManager.Uri;
+        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", url);
+        isCopied = true;
+
+        _ = Task.Delay(3000).ContinueWith(_ =>
+        {
+            isCopied = false;
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private async Task SubmitComment()
+    {
+        if (string.IsNullOrWhiteSpace(NewCommentText) || currentUserId == null || Recipe == null) return;
+
+        await RecipeService.AddCommentAsync(Recipe.Id, currentUserId, NewCommentText);
+        NewCommentText = string.Empty;
+
+        // Reload to show new comment
+        Recipe = await RecipeService.GetByIdAsync(Id);
+    }
+
+    private async Task RateRecipe(int score)
+    {
+        if (currentUserId == null || Recipe == null) return;
+
+        UserRating = score;
+        await RecipeService.AddOrUpdateRatingAsync(Recipe.Id, currentUserId, score);
+
+        // Reload to show new average rating
+        Recipe = await RecipeService.GetByIdAsync(Id);
     }
 }

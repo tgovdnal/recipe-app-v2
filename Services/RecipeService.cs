@@ -18,7 +18,10 @@ public class RecipeService : IRecipeService
 
     public async Task<List<Recipe>> GetAllAsync(string? searchTerm = null, string? tag = null, Difficulty? difficulty = null, int? categoryId = null)
     {
-        var query = _context.Recipes.Include(r => r.Categories).AsQueryable();
+        var query = _context.Recipes
+            .Include(r => r.Categories)
+            .Include(r => r.Ratings)
+            .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
@@ -47,7 +50,12 @@ public class RecipeService : IRecipeService
 
     public async Task<Recipe?> GetByIdAsync(int id)
     {
-        return await _context.Recipes.Include(r => r.Categories).FirstOrDefaultAsync(r => r.Id == id);
+        return await _context.Recipes
+            .Include(r => r.Categories)
+            .Include(r => r.Comments)
+                .ThenInclude(c => c.User)
+            .Include(r => r.Ratings)
+            .FirstOrDefaultAsync(r => r.Id == id);
     }
 
     public async Task<Recipe> CreateAsync(Recipe recipe, List<int> categoryIds, string? userId)
@@ -156,5 +164,43 @@ public class RecipeService : IRecipeService
         await file.OpenReadStream(maxFileSize).CopyToAsync(stream);
 
         return $"/images/recipes/{fileName}";
+    }
+
+    public async Task AddCommentAsync(int recipeId, string userId, string text)
+    {
+        var comment = new Comment
+        {
+            RecipeId = recipeId,
+            UserId = userId,
+            Text = text,
+            CreatedAt = DateTime.UtcNow
+        };
+        _context.Comments.Add(comment);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task AddOrUpdateRatingAsync(int recipeId, string userId, int score)
+    {
+        var existingRating = await _context.Ratings
+            .FirstOrDefaultAsync(r => r.RecipeId == recipeId && r.UserId == userId);
+
+        if (existingRating != null)
+        {
+            existingRating.Score = score;
+            existingRating.CreatedAt = DateTime.UtcNow; // Update time
+        }
+        else
+        {
+            var rating = new Rating
+            {
+                RecipeId = recipeId,
+                UserId = userId,
+                Score = score,
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.Ratings.Add(rating);
+        }
+
+        await _context.SaveChangesAsync();
     }
 }
